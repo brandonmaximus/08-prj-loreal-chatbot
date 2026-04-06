@@ -2,7 +2,7 @@
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
-const workerUrl = "https://YOUR-WORKER-SUBDOMAIN.workers.dev";
+const workerUrl = "https://odd-field-01cf.whatdoyouwant0429.workers.dev/";
 
 // System prompt that keeps the chatbot focused on L'Oreal topics only.
 const systemPrompt =
@@ -28,7 +28,7 @@ function addMessage(role, text) {
 // Initial assistant greeting
 addMessage(
   "assistant",
-  "Hello! Ask me about L'Oreal products, routines, or recommendations."
+  "Hello! Ask me about L'Oreal products, routines, or recommendations.",
 );
 
 /* Handle form submit */
@@ -76,7 +76,7 @@ chatForm.addEventListener("submit", async (e) => {
     loadingEl.remove();
     addMessage(
       "assistant",
-      "I could not reach the API right now. Please check your Cloudflare Worker URL and try again."
+      "I could not reach the API right now. Please check your Cloudflare Worker URL and try again.",
     );
     console.error(error);
   }

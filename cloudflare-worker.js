@@ -18,7 +18,7 @@ export default {
     if (request.method !== "POST") {
       return new Response(
         JSON.stringify({ error: "Only POST is supported." }),
-        { status: 405, headers: corsHeaders }
+        { status: 405, headers: corsHeaders },
       );
     }
 
@@ -28,7 +28,7 @@ export default {
       if (!apiKey) {
         return new Response(
           JSON.stringify({ error: "Missing OPENAI_API_KEY secret." }),
-          { status: 500, headers: corsHeaders }
+          { status: 500, headers: corsHeaders },
         );
       }
 
@@ -37,8 +37,10 @@ export default {
 
       if (!Array.isArray(messages)) {
         return new Response(
-          JSON.stringify({ error: "Request body must include a messages array." }),
-          { status: 400, headers: corsHeaders }
+          JSON.stringify({
+            error: "Request body must include a messages array.",
+          }),
+          { status: 400, headers: corsHeaders },
         );
       }
 
@@ -55,7 +57,7 @@ export default {
             messages,
             max_completion_tokens: 300,
           }),
-        }
+        },
       );
 
       const data = await openAiResponse.json();
@@ -70,7 +72,7 @@ export default {
           error: "Worker request failed.",
           details: String(error),
         }),
-        { status: 500, headers: corsHeaders }
+        { status: 500, headers: corsHeaders },
       );
     }
   },
