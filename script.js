@@ -2,6 +2,7 @@
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
+const latestQuestion = document.getElementById("latestQuestion");
 const workerUrl = "https://odd-field-01cf.whatdoyouwant0429.workers.dev/";
 
 // System prompt that keeps the chatbot focused on L'Oreal topics only.
@@ -11,18 +12,55 @@ const systemPrompt =
 // Keep conversation history in a messages array for Chat Completions.
 const messages = [{ role: "system", content: systemPrompt }];
 
+// Store extra context for more natural multi-turn conversation in the UI.
+const conversationMemory = {
+  userName: "",
+  pastQuestions: [],
+};
+
+function detectUserName(text) {
+  const namePatterns = [
+    /my name is\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)/i,
+    /i am\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)/i,
+    /i'm\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)/i,
+  ];
+
+  for (const pattern of namePatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+
+  return "";
+}
+
+function updateLatestQuestion(text) {
+  latestQuestion.textContent = `Latest question: ${text}`;
+}
+
 /* Helper to render a single chat message */
 function addMessage(role, text) {
+  const messageRow = document.createElement("div");
   const messageEl = document.createElement("div");
+  const labelEl = document.createElement("p");
+  const contentEl = document.createElement("p");
 
-  // Reuse existing CSS classes: .msg.user and .msg.ai
-  messageEl.className = role === "user" ? "msg user" : "msg ai";
+  const isUser = role === "user";
+  messageRow.className = isUser ? "msg-row user" : "msg-row ai";
+  messageEl.className = isUser ? "msg user" : "msg ai";
+  labelEl.className = "msg-label";
+  contentEl.className = "msg-text";
 
-  const label = role === "user" ? "You" : "Advisor";
-  messageEl.textContent = `${label}: ${text}`;
+  labelEl.textContent = isUser ? "You" : "Advisor";
+  contentEl.textContent = text;
 
-  chatWindow.appendChild(messageEl);
+  messageEl.append(labelEl, contentEl);
+  messageRow.appendChild(messageEl);
+  chatWindow.appendChild(messageRow);
   chatWindow.scrollTop = chatWindow.scrollHeight;
+
+  return messageRow;
 }
 
 // Initial assistant greeting
@@ -38,16 +76,28 @@ chatForm.addEventListener("submit", async (e) => {
   const text = userInput.value.trim();
   if (!text) return;
 
+  const name = detectUserName(text);
+  if (name) {
+    conversationMemory.userName = name;
+  }
+
+  conversationMemory.pastQuestions.push(text);
+  updateLatestQuestion(text);
+
   addMessage("user", text);
   messages.push({ role: "user", content: text });
+
+  if (conversationMemory.userName) {
+    messages.push({
+      role: "system",
+      content: `The user's name is ${conversationMemory.userName}. Use it naturally when helpful.`,
+    });
+  }
+
   userInput.value = "";
 
   // Simple typing/loading message while waiting for API response.
-  const loadingEl = document.createElement("div");
-  loadingEl.className = "msg ai";
-  loadingEl.textContent = "Advisor: Thinking...";
-  chatWindow.appendChild(loadingEl);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
+  const loadingEl = addMessage("assistant", "Thinking...");
 
   try {
     // Send chat messages to your Cloudflare Worker instead of calling OpenAI directly.
@@ -70,8 +120,12 @@ chatForm.addEventListener("submit", async (e) => {
 
     // Save and display the assistant reply.
     messages.push({ role: "assistant", content: assistantText });
+    const personalizedReply = conversationMemory.userName
+      ? `Hi ${conversationMemory.userName}, ${assistantText}`
+      : assistantText;
+
     loadingEl.remove();
-    addMessage("assistant", assistantText);
+    addMessage("assistant", personalizedReply);
   } catch (error) {
     loadingEl.remove();
     addMessage(
